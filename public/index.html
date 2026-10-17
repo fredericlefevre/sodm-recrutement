@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#175b47"><title>SODM · Recrutement</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="SODM accueil"><img src="/favicon.svg" alt="" width="38" height="38"><span>SODM<small>RECRUTEMENT</small></span></a>
+    <div class="workspace"><span class="workspace-icon">S</span><span>Espace de travail<small>Équipe recrutement</small></span><span class="workspace-dot"></span></div>
+    <p class="nav-label">VOTRE ESPACE</p>
+    <nav aria-label="Navigation principale">
+      <button data-page="dashboard" class="nav-item active"><span>▦</span>Vue d’ensemble</button>
+      <button data-page="jobs" class="nav-item"><span>▱</span>Offres d’emploi<span id="job-count" class="nav-count">0</span></button>
+      <button data-page="candidates" class="nav-item"><span>♧</span>Candidatures<span id="candidate-count" class="nav-count">0</span></button>
+    </nav>
+    <div class="sidebar-bottom"><div class="demo-note"><span class="demo-dot"></span>Votre espace prend vie<p>Consultez les offres et le formulaire de candidature.</p><a href="/carrieres">Ouvrir l’espace carrières ↗</a></div><div class="profile"><span class="avatar green">RH</span><span>Équipe SODM<small>Espace recrutement</small></span></div></div>
+  </aside>
+  <div class="main-shell"><header class="topbar"><span>SODM <span class="slash">/</span> <span id="breadcrumb">Vue d’ensemble</span></span><span class="topbar-right"><span class="online-dot"></span>Espace recrutement<span class="avatar small">RH</span></span></header>
+    <main id="main" tabindex="-1">
+      <div class="page-heading"><div><p class="eyebrow">LES TALENTS FONT LA DIFFÉRENCE</p><h1 id="page-title">Chaque recrutement commence ici.</h1><p id="page-subtitle">Une vue claire sur vos recrutements, pour avancer ensemble.</p></div><button class="button primary" id="primary-action"><span>＋</span>Créer une offre</button></div>
+      <div id="error-banner" class="error-banner" role="alert" hidden></div>
+      <section id="dashboard-page">
+        <div class="stats" id="stats"></div>
+        <section class="pipeline-section"><div class="section-heading"><div><h2>Votre recrutement, en mouvement</h2><p>Suivez les talents à chaque étape de leur parcours.</p></div><span class="tag">Vue du pipeline</span></div><div class="pipeline" id="pipeline"></div></section>
+        <div class="dashboard-grid"><section class="panel"><div class="section-heading"><h2>Dernières candidatures</h2><button class="text-button" data-page="candidates">Tout voir <span>↗</span></button></div><div id="recent-candidates"></div></section><section class="panel jobs-panel"><div class="section-heading"><h2>Offres en cours</h2><button class="text-button" data-page="jobs">Voir les offres ↗</button></div><div id="recent-jobs"></div></section></div>
+        <div class="bottom-note"><span>✧</span><p>Les belles équipes se construisent une rencontre à la fois.</p><span>SODM · Recrutement</span></div>
+      </section>
+      <section id="jobs-page" hidden><div class="toolbar"><label class="search"><span>⌕</span><input id="job-search" type="search" placeholder="Rechercher une offre…" aria-label="Rechercher une offre"></label><span id="jobs-total" class="muted"></span></div><div id="jobs-list" class="job-grid"></div></section>
+      <section id="candidates-page" hidden><div class="toolbar"><label class="search"><span>⌕</span><input id="candidate-search" type="search" placeholder="Nom, e-mail ou poste…" aria-label="Rechercher une candidature"></label><select id="status-filter" aria-label="Filtrer par statut"><option value="">Tous les statuts</option></select></div><div class="panel table-wrap"><table><thead><tr><th>Candidat</th><th>Poste recherché</th><th>Étape</th><th>Date d’ajout</th><th><span class="sr-only">Action</span></th></tr></thead><tbody id="candidates-list"></tbody></table><div id="candidates-empty" class="empty" hidden>Aucune candidature ne correspond à votre recherche.</div></div></section>
+      <p id="loading" class="empty" role="status">Chargement de votre espace…</p>
+    </main>
+  </div>
+  <dialog id="modal"><form id="modal-form"><div class="modal-heading"><div><p class="eyebrow">SODM RECRUTEMENT</p><h2 id="modal-title"></h2></div><button type="button" id="close-modal" class="close-button" aria-label="Fermer">×</button></div><div id="modal-fields"></div><p id="form-error" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" class="button secondary" id="cancel-modal">Annuler</button><button class="button primary" type="submit" id="save-button">Enregistrer</button></div></form></dialog>
+  <div id="toast" role="status" hidden></div>
+</body></html>
