@@ -2,7 +2,7 @@ services:
   - type: web
     name: sodm-recrutement
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci --ignore-scripts --no-audit --no-fund && npm test
     startCommand: npm start
     healthCheckPath: /api/jobs
@@ -12,12 +12,8 @@ services:
       - key: HOST
         value: "0.0.0.0"
       - key: SEED_DEMO
-        value: "false"
+        value: "true"
       - key: DB_PATH
-        value: /var/data/recrutement.sqlite
+        value: /tmp/sodm-recrutement.sqlite
       - key: ADMIN_PASSWORD
         sync: false
-    disk:
-      name: recrutement-data
-      mountPath: /var/data
-      sizeGB: 1

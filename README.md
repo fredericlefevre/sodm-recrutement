@@ -56,16 +56,18 @@ Le développement cloud utilise le dépôt existant dans `/workspace/sodm-recrut
 
 ## Mettre en ligne sur Render
 
-Le fichier `render.yaml` prépare un service Node.js avec disque persistant de 1 Go. **Le service Starter et le disque sont payants** : vérifier le montant dans Render avant de lancer la création. Aucun abonnement n’est créé par la présence de ce fichier. Ne pas remplacer ce disque par le stockage temporaire d’une offre gratuite pour conserver des candidatures réelles.
+Le fichier `render.yaml` prépare un **Web Service gratuit de démonstration**, sans disque persistant. Trois offres et cinq candidats fictifs sont ajoutés lorsque la base temporaire est initialisée. Les modifications peuvent être perdues lors des redémarrages, mises en veille ou redéploiements. Utiliser uniquement des candidatures fictives. Le service gratuit peut se mettre en veille et prendre du temps à répondre au premier accès.
 
 1. Se connecter à Render, puis choisir **New → Blueprint**.
 2. Connecter GitHub et sélectionner `fredericlefevre/sodm-recrutement`, branche `main`. Autoriser l’accès à ce seul dépôt si possible.
 3. Render lit `render.yaml`. Renseigner `ADMIN_PASSWORD` avec un mot de passe long et unique dans son formulaire sécurisé ; ne pas le publier dans GitHub ni le communiquer dans le chat.
-4. Vérifier le service, le disque et le prix affichés, puis lancer le déploiement si cette offre convient.
+4. Vérifier que le plan affiché est **Free**, sans disque payant, puis lancer le déploiement.
 5. Attendre le statut **Live** et copier l’adresse HTTPS effectivement attribuée par Render. Aucun nom de domaine particulier n’est garanti à l’avance.
 
-À cette adresse, le chemin `/` ouvre l’espace équipe : identifiant **admin**, mot de passe défini dans Render. Créer une première offre, puis ajouter `/carrieres` à l’adresse pour ouvrir le site candidats. La base de production démarre vide, sans les profils fictifs du développement.
+À cette adresse, le chemin `/` ouvre l’espace équipe : identifiant **admin**, mot de passe défini dans Render. Ajouter `/carrieres` à l’adresse pour ouvrir le site candidats. Des offres et profils de démonstration permettent de tester immédiatement.
 
-Vérifier ensuite le parcours : créer une offre, envoyer une candidature fictive sur `/carrieres`, la retrouver côté équipe et modifier son statut. Un visiteur sans connexion ne doit pas pouvoir accéder à `/api/data`. Vérifier aussi qu’un redémarrage du service conserve les offres et candidatures. Le disque conserve les données lors des redémarrages et redéploiements ; ne pas supprimer le disque, et prévoir des sauvegardes.
+Vérifier ensuite le parcours : créer une offre, envoyer une candidature fictive sur `/carrieres`, la retrouver côté équipe et modifier son statut. Un visiteur sans connexion ne doit pas pouvoir accéder à `/api/data`. La base SQLite est située dans `/tmp/sodm-recrutement.sqlite` sur un stockage temporaire : sa conservation n’est pas garantie.
+
+Pour une création manuelle via **New → Web Service**, sélectionner ce dépôt et la branche `main`, le runtime Node et le plan **Free**. Utiliser `npm ci --ignore-scripts --no-audit --no-fund && npm test` comme commande de construction et `npm start` comme commande de démarrage. Dans **Environment**, ajouter `NODE_VERSION=24.19.0`, `HOST=0.0.0.0`, `SEED_DEMO=true`, `DB_PATH=/tmp/sodm-recrutement.sqlite` et un `ADMIN_PASSWORD` personnel. Ne pas ajouter de disque. Si un service payant existe déjà, ce fichier ne modifie pas automatiquement son abonnement : vérifier son plan dans Render avant de poursuivre.
 
 Cette configuration fournit une première mise en ligne avec une connexion administrateur partagée. Les fonctions absentes et les précautions de mise en ligne indiquées plus haut restent applicables.
