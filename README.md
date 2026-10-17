@@ -53,3 +53,19 @@ Cette version n’est pas encore déployée sur Internet. Elle ne comprend pas l
 Vérification manuelle : créer une offre dans l’espace équipe, ouvrir `/carrieres`, postuler sur cette offre, revenir dans l’espace équipe et recharger la page, rechercher le candidat puis enregistrer son statut et ses notes.
 
 Le développement cloud utilise le dépôt existant dans `/workspace/sodm-recrutement` ; aucun worktree supplémentaire n’est nécessaire. Les processus doivent être relancés dans une nouvelle tâche, même si les fichiers et la base sont conservés.
+
+## Mettre en ligne sur Render
+
+Le fichier `render.yaml` prépare un service Node.js avec disque persistant de 1 Go. **Le service Starter et le disque sont payants** : vérifier le montant dans Render avant de lancer la création. Aucun abonnement n’est créé par la présence de ce fichier. Ne pas remplacer ce disque par le stockage temporaire d’une offre gratuite pour conserver des candidatures réelles.
+
+1. Se connecter à Render, puis choisir **New → Blueprint**.
+2. Connecter GitHub et sélectionner `fredericlefevre/sodm-recrutement`, branche `main`. Autoriser l’accès à ce seul dépôt si possible.
+3. Render lit `render.yaml`. Renseigner `ADMIN_PASSWORD` avec un mot de passe long et unique dans son formulaire sécurisé ; ne pas le publier dans GitHub ni le communiquer dans le chat.
+4. Vérifier le service, le disque et le prix affichés, puis lancer le déploiement si cette offre convient.
+5. Attendre le statut **Live** et copier l’adresse HTTPS effectivement attribuée par Render. Aucun nom de domaine particulier n’est garanti à l’avance.
+
+À cette adresse, le chemin `/` ouvre l’espace équipe : identifiant **admin**, mot de passe défini dans Render. Créer une première offre, puis ajouter `/carrieres` à l’adresse pour ouvrir le site candidats. La base de production démarre vide, sans les profils fictifs du développement.
+
+Vérifier ensuite le parcours : créer une offre, envoyer une candidature fictive sur `/carrieres`, la retrouver côté équipe et modifier son statut. Un visiteur sans connexion ne doit pas pouvoir accéder à `/api/data`. Vérifier aussi qu’un redémarrage du service conserve les offres et candidatures. Le disque conserve les données lors des redémarrages et redéploiements ; ne pas supprimer le disque, et prévoir des sauvegardes.
+
+Cette configuration fournit une première mise en ligne avec une connexion administrateur partagée. Les fonctions absentes et les précautions de mise en ligne indiquées plus haut restent applicables.
