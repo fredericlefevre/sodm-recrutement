@@ -29,7 +29,7 @@ Au premier démarrage, trois offres et cinq candidats **fictifs** sont créés. 
 | Variable | Valeur par défaut | Usage |
 | --- | --- | --- |
 | `PORT` | `3000` | Port HTTP |
-| `HOST` | `127.0.0.1` | Interface réseau |
+| `HOST` | `127.0.0.1` en local, `0.0.0.0` sur Render | Interface réseau ; Render est détecté grâce à sa variable `RENDER=true` |
 | `DB_PATH` | `data/recrutement.sqlite` dans le projet | Chemin de la base SQLite |
 | `SEED_DEMO` | `true` | Mettre `false` pour initialiser une nouvelle base vide |
 | `ADMIN_PASSWORD` | Non défini | Active la connexion HTTP Basic de l’espace équipe, identifiant `admin` |
@@ -48,7 +48,7 @@ Cette version n’est pas encore déployée sur Internet. Elle ne comprend pas l
 
 ## Vérification
 
-`npm test` exécute cinq tests d’intégration avec de vraies requêtes HTTP et des bases isolées : parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
+`npm test` exécute six tests d’intégration avec de vraies requêtes HTTP et des bases isolées : démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
 
 Vérification manuelle : créer une offre dans l’espace équipe, ouvrir `/carrieres`, postuler sur cette offre, revenir dans l’espace équipe et recharger la page, rechercher le candidat puis enregistrer son statut et ses notes.
 

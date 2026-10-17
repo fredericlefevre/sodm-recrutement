@@ -104,8 +104,9 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
   return server;
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  if (process.env.HOST && !['localhost', '127.0.0.1', '::1'].includes(process.env.HOST) && !process.env.ADMIN_PASSWORD) throw new Error('ADMIN_PASSWORD est requis pour une écoute hors de la machine locale.');
+  const host = process.env.HOST || (process.env.RENDER === 'true' ? '0.0.0.0' : '127.0.0.1');
+  if (!['localhost', '127.0.0.1', '::1'].includes(host) && !process.env.ADMIN_PASSWORD) throw new Error('ADMIN_PASSWORD est requis pour une écoute hors de la machine locale.');
   const server = createApp({ dbPath: process.env.DB_PATH, demo: process.env.SEED_DEMO !== 'false', adminPassword: process.env.ADMIN_PASSWORD });
-  server.listen(Number(process.env.PORT || 3000), process.env.HOST || '127.0.0.1', () => console.log(`SODM Recrutement démarré sur le port ${server.address().port}`));
+  server.listen(Number(process.env.PORT || 3000), host, () => console.log(`SODM Recrutement démarré sur ${server.address().address}, port ${server.address().port}`));
   for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => server.close());
 }

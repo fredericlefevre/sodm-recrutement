@@ -5,6 +5,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server.js';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 async function start(options = {}) {
   const app = createApp({ dbPath: ':memory:', demo: false, ...options });
@@ -13,6 +15,33 @@ async function start(options = {}) {
   return { app, request: (path, method = 'GET', body, headers = {}) => fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }), close: () => new Promise(resolve => app.close(resolve)) };
 }
 const job = { title: 'Développeur web', department: 'Informatique', location: 'Paris', contract: 'CDI', description: 'Construire nos outils.' };
+test('le démarrage sur Render écoute sur 0.0.0.0 même sans variable HOST', { timeout: 10000 }, async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sodm-render-'));
+  const env = { ...process.env, RENDER: 'true', PORT: '0', ADMIN_PASSWORD: 'test-only-password', SEED_DEMO: 'false', DB_PATH: join(directory, 'test.sqlite') };
+  delete env.HOST;
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../server.js', import.meta.url))], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const exited = once(child, 'exit');
+  try {
+    const port = await new Promise((resolve, reject) => {
+      let output = '';
+      child.stdout.on('data', chunk => {
+        output += chunk;
+        const match = output.match(/démarré sur 0\.0\.0\.0, port (\d+)/);
+        if (match) resolve(Number(match[1]));
+      });
+      child.once('error', reject);
+      child.once('exit', code => reject(new Error(`Le serveur s’est arrêté : ${code}`)));
+      const timer = setTimeout(() => reject(new Error('Le serveur ne démarre pas sur 0.0.0.0.')), 5000);
+      child.once('exit', () => clearTimeout(timer));
+    });
+    assert.equal((await fetch(`http://127.0.0.1:${port}/api/jobs`)).status, 200);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/api/data`)).status, 401);
+  } finally {
+    if (child.exitCode === null) child.kill('SIGTERM');
+    await exited;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 test('une offre publique reçoit une candidature et le recruteur fait avancer son statut', async () => {
   const service = await start();
   try {
