@@ -3,8 +3,8 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;
 const initials = name => name.split(/\s+/).map(n => n[0]).slice(0, 2).join('').toUpperCase();
 const date = value => new Date(value.replace(' ', 'T') + 'Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 let state = { jobs: [], candidates: [], statuses: [] }, page = 'dashboard', saving = false;
-const colors = ['slate', 'blue', 'purple', 'green', 'red'];
-function badge(status) { return `<span class="badge ${colors[state.statuses.indexOf(status)] || 'slate'}"><i></i>${esc(status)}</span>`; }
+const colors = ['pending', 'interview', 'proposal', 'hired', 'rejected'];
+function badge(status) { return `<span class="badge ${colors[state.statuses.indexOf(status)] || 'pending'}"><i></i>${esc(status)}</span>`; }
 async function api(path, options) {
   const response = await fetch(path, options ? { ...options, headers: { 'Content-Type': 'application/json' } } : undefined);
   const data = await response.json();
@@ -23,7 +23,7 @@ function render() {
   $('#candidate-count').textContent = state.candidates.length;
   const count = status => state.candidates.filter(c => c.status === status).length;
   const metrics = [ ['Offres en cours', state.jobs.length, 'Des opportunités à partager', '▱'], ['Candidatures reçues', state.candidates.length, 'Des talents à rencontrer', '♧'], ['Entretiens en cours', count('Entretien'), 'La prochaine étape se prépare', '◷'], ['Talents recrutés', count('Recruté'), 'De nouvelles histoires commencent', '✧'] ];
-  $('#stats').innerHTML = metrics.map(([title, value, caption, icon], i) => `<article class="stat-card"><div><span>${title}</span><span class="stat-icon ${i === 3 ? 'green' : ''}">${icon}</span></div><strong>${value.toString().padStart(2, '0')}</strong><p>${caption}</p></article>`).join('');
+  $('#stats').innerHTML = metrics.map(([title, value, caption, icon], i) => `<article class="stat-card"><div><span>${title}</span><span class="stat-icon ${i === 3 ? 'hired' : ''}">${icon}</span></div><strong>${value.toString().padStart(2, '0')}</strong><p>${caption}</p></article>`).join('');
   $('#pipeline').innerHTML = state.statuses.map((s, i) => `<button class="pipeline-step ${colors[i]}" data-status="${esc(s)}"><span><i></i>${esc(s)}</span><strong>${count(s).toString().padStart(2, '0')}</strong><div class="track"></div></button>`).join('');
   // Progress uses an HTML meter to respect the application's strict style policy.
   document.querySelectorAll('.track').forEach((track, i) => { const meter = document.createElement('meter'); meter.min = 0; meter.max = Math.max(state.candidates.length, 1); meter.value = count(state.statuses[i]); meter.setAttribute('aria-label', state.statuses[i]); track.replaceWith(meter); });
