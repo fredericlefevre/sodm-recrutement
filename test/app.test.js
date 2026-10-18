@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 async function start(options = {}) {
-  const app = createApp({ dbPath: ':memory:', demo: false, ...options });
+  const app = createApp({ dbPath: ':memory:', demo: false, logoPath: '', ...options });
   app.listen(0, '127.0.0.1'); await once(app, 'listening');
   const base = `http://127.0.0.1:${app.address().port}`;
   return { app, request: (path, method = 'GET', body, headers = {}) => fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }), close: () => new Promise(resolve => app.close(resolve)) };
