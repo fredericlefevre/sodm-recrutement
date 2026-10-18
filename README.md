@@ -48,7 +48,11 @@ Cette version n’est pas encore déployée sur Internet. Elle ne comprend pas l
 
 ## Vérification
 
-`npm test` exécute six tests d’intégration avec de vraies requêtes HTTP et des bases isolées : démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
+`npm test` exécute sept tests d’intégration avec de vraies requêtes HTTP et des bases isolées : import et conservation du logo, démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
+
+## Ajouter le logo SODM
+
+Dans l’espace équipe, cliquer sur **Importer le logo**, puis sélectionner l’image originale sur votre appareil (PNG, JPEG ou WebP, 2 Mo maximum). L’image est conservée sans redessin dans la base SQLite et affichée sur les deux espaces avec ses proportions d’origine. Recharger la page carrières si elle était déjà ouverte. Le bouton permet aussi de remplacer le logo. Sur Render gratuit, le logo peut être perdu avec le reste de la base temporaire ; il faudra alors l’importer à nouveau.
 
 Vérification manuelle : créer une offre dans l’espace équipe, ouvrir `/carrieres`, postuler sur cette offre, revenir dans l’espace équipe et recharger la page, rechercher le candidat puis enregistrer son statut et ses notes.
 

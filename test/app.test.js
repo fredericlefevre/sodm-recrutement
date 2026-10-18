@@ -15,6 +15,25 @@ async function start(options = {}) {
   return { app, request: (path, method = 'GET', body, headers = {}) => fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }), close: () => new Promise(resolve => app.close(resolve)) };
 }
 const job = { title: 'Développeur web', department: 'Informatique', location: 'Paris', contract: 'CDI', description: 'Construire nos outils.' };
+test('le logo est réservé à l’équipe en écriture, public en lecture et conservé après redémarrage', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sodm-logo-')), dbPath = join(directory, 'test.sqlite');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=', 'base64');
+  let service = await start({ dbPath, adminPassword: 'test-password' });
+  const upload = (data, type, authenticated = true) => fetch(`http://127.0.0.1:${service.app.address().port}/api/logo`, { method: 'PUT', headers: { 'Content-Type': type, ...(authenticated ? { Authorization: 'Basic ' + Buffer.from('admin:test-password').toString('base64') } : {}) }, body: data });
+  try {
+    assert.deepEqual(await (await service.request('/api/logo')).json(), { configured: false });
+    assert.equal((await upload(png, 'image/png', false)).status, 401);
+    assert.equal((await upload('<svg></svg>', 'image/svg+xml')).status, 400);
+    assert.equal((await upload('invalid', 'image/png')).status, 400);
+    assert.equal((await upload(Buffer.alloc(2 * 1024 * 1024 + 1), 'image/png')).status, 413);
+    assert.equal((await upload(png, 'image/png')).status, 200);
+    await service.close(); service = await start({ dbPath, adminPassword: 'test-password' });
+    assert.deepEqual(await (await service.request('/api/logo')).json(), { configured: true });
+    const response = await service.request('/logo');
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+  } finally { await service.close(); rmSync(directory, { recursive: true, force: true }); }
+});
 test('le démarrage sur Render écoute sur 0.0.0.0 même sans variable HOST', { timeout: 10000 }, async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sodm-render-'));
   const env = { ...process.env, RENDER: 'true', PORT: '0', ADMIN_PASSWORD: 'test-only-password', SEED_DEMO: 'false', DB_PATH: join(directory, 'test.sqlite') };

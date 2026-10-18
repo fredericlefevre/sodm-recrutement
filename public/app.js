@@ -102,4 +102,24 @@ document.addEventListener('click', event => {
 $('#primary-action').onclick = () => openModal(page === 'candidates' ? 'candidate' : 'job');
 $('#close-modal').onclick = $('#cancel-modal').onclick = () => { if (!saving) $('#modal').close(); };
 $('#job-search').oninput = renderJobs; $('#candidate-search').oninput = $('#status-filter').onchange = renderCandidates;
+$('#import-logo').onclick = () => $('#logo-file').click();
+$('#logo-file').onchange = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const status = $('#logo-status'), button = $('#import-logo');
+  try {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('Choisissez une image PNG, JPEG ou WebP.');
+    if (file.size > 2 * 1024 * 1024) throw new Error('Le logo doit peser moins de 2 Mo.');
+    const image = await createImageBitmap(file);
+    image.close();
+    button.disabled = true; status.textContent = 'Importation du logo…';
+    const response = await fetch('/api/logo', { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    await refreshLogo();
+    button.textContent = 'Changer le logo';
+    status.textContent = 'Logo enregistré sur les deux espaces.';
+  } catch (error) { status.textContent = error.message || 'Impossible d’importer cette image.'; }
+  finally { button.disabled = false; event.target.value = ''; }
+};
 load();

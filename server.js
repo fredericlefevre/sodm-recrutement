@@ -53,7 +53,7 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
     res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
     try {
       const url = new URL(req.url, 'http://localhost');
-      const adminRoute = url.pathname === '/' || url.pathname === '/api/data' || (url.pathname === '/api/jobs' && req.method !== 'GET') || (url.pathname.startsWith('/api/candidates/') && req.method !== 'POST');
+      const adminRoute = url.pathname === '/' || url.pathname === '/api/data' || (url.pathname === '/api/logo' && req.method !== 'GET') || (url.pathname === '/api/jobs' && req.method !== 'GET') || (url.pathname.startsWith('/api/candidates/') && req.method !== 'POST');
       if (adminPassword && adminRoute) {
         const authorization = req.headers.authorization || '';
         const credentials = authorization.startsWith('Basic ') ? Buffer.from(authorization.slice(6), 'base64').toString() : '';
@@ -65,6 +65,20 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
       }
       if (url.pathname.startsWith('/api/')) {
         if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}` && req.headers.origin !== `https://${req.headers.host}`) return json(res, 403, { error: 'Origine non autorisée.' });
+        if (url.pathname === '/api/logo' && req.method === 'GET') return json(res, 200, { configured: Boolean(db.prepare("SELECT 1 FROM settings WHERE key = 'logo'").get()) });
+        if (url.pathname === '/api/logo' && req.method === 'PUT') {
+          const chunks = []; let size = 0;
+          for await (const chunk of req) {
+            size += chunk.length;
+            if (size > 2 * 1024 * 1024) return json(res, 413, { error: 'Le logo doit peser moins de 2 Mo.' });
+            chunks.push(chunk);
+          }
+          const buffer = Buffer.concat(chunks), mime = req.headers['content-type'];
+          const valid = (mime === 'image/png' && buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) || (mime === 'image/jpeg' && buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255) || (mime === 'image/webp' && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP');
+          if (!valid) return json(res, 400, { error: 'Choisissez une image PNG, JPEG ou WebP valide.' });
+          db.prepare("INSERT INTO settings (key, value) VALUES ('logo', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify({ mime, data: buffer.toString('base64') }));
+          return json(res, 200, { ok: true });
+        }
         if (req.method === 'GET' && url.pathname === '/api/jobs') return json(res, 200, db.prepare('SELECT * FROM jobs ORDER BY id DESC').all());
         if (req.method === 'GET' && url.pathname === '/api/data') return json(res, 200, {
           jobs: db.prepare('SELECT * FROM jobs ORDER BY id DESC').all(),
@@ -93,7 +107,14 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
         }
         return json(res, 404, { error: 'Ressource introuvable.' });
       }
-      const files = { '/': ['index.html', 'text/html'], '/carrieres': ['careers.html', 'text/html'], '/careers.js': ['careers.js', 'text/javascript'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'] };
+      if (url.pathname === '/logo' && ['GET', 'HEAD'].includes(req.method)) {
+        const row = db.prepare("SELECT value FROM settings WHERE key = 'logo'").get();
+        if (!row) return json(res, 404, { error: 'Aucun logo importé.' });
+        const logo = JSON.parse(row.value);
+        res.writeHead(200, { 'Content-Type': logo.mime, 'Cache-Control': 'no-store' });
+        return res.end(req.method === 'HEAD' ? undefined : Buffer.from(logo.data, 'base64'));
+      }
+      const files = { '/': ['index.html', 'text/html'], '/carrieres': ['careers.html', 'text/html'], '/branding.js': ['branding.js', 'text/javascript'], '/careers.js': ['careers.js', 'text/javascript'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'] };
       if (!files[url.pathname] || !['GET', 'HEAD'].includes(req.method)) return json(res, 404, { error: 'Page introuvable.' });
       const [file, mime] = files[url.pathname];
       res.writeHead(200, { 'Content-Type': `${mime}; charset=utf-8`, 'Cache-Control': 'no-cache' });
