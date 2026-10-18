@@ -48,11 +48,15 @@ Cette version n’est pas encore déployée sur Internet. Elle ne comprend pas l
 
 ## Vérification
 
-`npm test` exécute sept tests d’intégration avec de vraies requêtes HTTP et des bases isolées : import et conservation du logo, démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
+`npm test` exécute huit tests d’intégration avec de vraies requêtes HTTP et des bases isolées : logo intégré au dépôt, import et conservation du logo, démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
 
 ## Ajouter le logo SODM
 
+Pour intégrer définitivement l’image originale, télécharger le PNG depuis SharePoint dans votre navigateur, le renommer `logo-sodm.png` puis l’ajouter dans le dossier `public` du dépôt. Sur GitHub : ouvrir `public`, choisir **Add file → Upload files**, déposer le PNG, puis confirmer avec **Commit changes**. Le site affiche automatiquement ce fichier dans les deux espaces, même avec une nouvelle base de données. Aucun accès SharePoint n’est nécessaire pour les visiteurs. Le fichier n’a pas encore été ajouté : il doit être fourni par une personne ayant accès au lien SharePoint.
+
 Dans l’espace équipe, cliquer sur **Importer le logo**, puis sélectionner l’image originale sur votre appareil (PNG, JPEG ou WebP, 2 Mo maximum). L’image est conservée sans redessin dans la base SQLite et affichée sur les deux espaces avec ses proportions d’origine. Recharger la page carrières si elle était déjà ouverte. Le bouton permet aussi de remplacer le logo. Sur Render gratuit, le logo peut être perdu avec le reste de la base temporaire ; il faudra alors l’importer à nouveau.
+
+Un logo importé dans l’espace équipe est prioritaire sur celui du dépôt. Si cette importation disparaît avec la base temporaire, le logo du dépôt est à nouveau utilisé lorsqu’il est présent.
 
 Vérification manuelle : créer une offre dans l’espace équipe, ouvrir `/carrieres`, postuler sur cette offre, revenir dans l’espace équipe et recharger la page, rechercher le candidat puis enregistrer son statut et ses notes.
 

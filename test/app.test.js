@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server.js';
@@ -15,6 +15,23 @@ async function start(options = {}) {
   return { app, request: (path, method = 'GET', body, headers = {}) => fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }), close: () => new Promise(resolve => app.close(resolve)) };
 }
 const job = { title: 'Développeur web', department: 'Informatique', location: 'Paris', contract: 'CDI', description: 'Construire nos outils.' };
+test('le logo du dépôt apparaît sans import et reste disponible avec une base neuve', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sodm-brand-')), logoPath = join(directory, 'logo-sodm.png');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=', 'base64');
+  writeFileSync(logoPath, png);
+  let service;
+  try {
+    for (let run = 0; run < 2; run++) {
+      service = await start({ logoPath, adminPassword: 'test-password' });
+      assert.deepEqual(await (await service.request('/api/logo')).json(), { configured: true });
+      const response = await service.request('/logo');
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), 'image/png');
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+      await service.close(); service = null;
+    }
+  } finally { if (service) await service.close(); rmSync(directory, { recursive: true, force: true }); }
+});
 test('le logo est réservé à l’équipe en écriture, public en lecture et conservé après redémarrage', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sodm-logo-')), dbPath = join(directory, 'test.sqlite');
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=', 'base64');

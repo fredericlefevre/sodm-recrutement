@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -8,7 +8,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 const root = dirname(fileURLToPath(import.meta.url));
 export const statuses = ['À étudier', 'Entretien', 'Proposition', 'Recruté', 'Refusé'];
 
-export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo = true, adminPassword = '' } = {}) {
+export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo = true, adminPassword = '', logoPath = join(root, 'public/logo-sodm.png') } = {}) {
   if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
   db.exec(`PRAGMA foreign_keys = ON;
@@ -65,7 +65,7 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
       }
       if (url.pathname.startsWith('/api/')) {
         if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}` && req.headers.origin !== `https://${req.headers.host}`) return json(res, 403, { error: 'Origine non autorisée.' });
-        if (url.pathname === '/api/logo' && req.method === 'GET') return json(res, 200, { configured: Boolean(db.prepare("SELECT 1 FROM settings WHERE key = 'logo'").get()) });
+        if (url.pathname === '/api/logo' && req.method === 'GET') return json(res, 200, { configured: Boolean(db.prepare("SELECT 1 FROM settings WHERE key = 'logo'").get()) || existsSync(logoPath) });
         if (url.pathname === '/api/logo' && req.method === 'PUT') {
           const chunks = []; let size = 0;
           for await (const chunk of req) {
@@ -109,6 +109,10 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
       }
       if (url.pathname === '/logo' && ['GET', 'HEAD'].includes(req.method)) {
         const row = db.prepare("SELECT value FROM settings WHERE key = 'logo'").get();
+        if (!row && existsSync(logoPath)) {
+          res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache' });
+          return res.end(req.method === 'HEAD' ? undefined : readFileSync(logoPath));
+        }
         if (!row) return json(res, 404, { error: 'Aucun logo importé.' });
         const logo = JSON.parse(row.value);
         res.writeHead(200, { 'Content-Type': logo.mime, 'Cache-Control': 'no-store' });
