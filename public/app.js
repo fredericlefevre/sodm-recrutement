@@ -53,6 +53,31 @@ function navigate(next) {
   $('#primary-action').innerHTML = page === 'candidates' ? '<span>＋</span>Ajouter un candidat' : '<span>＋</span>Créer une offre';
 }
 const input = (label, name, type = 'text', value = '', max = 200) => `<label class="field">${label}<input name="${name}" type="${type}" value="${esc(value)}" maxlength="${max}" required></label>`;
+function setupAttachments(id) {
+  $('#modal-fields').insertAdjacentHTML('beforeend', `<section class="attachments-section" aria-labelledby="attachments-title"><h3 id="attachments-title">Pièces jointes</h3><div id="attachments-list" class="attachments-list" aria-live="polite">Chargement des documents…</div><label class="field">Ajouter un document<input id="attachment-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"><small class="file-help">PDF, Word, PNG ou JPEG · 5 Mo maximum par fichier</small></label><button type="button" id="attachment-upload" class="button secondary">Ajouter la pièce jointe</button><p id="attachment-status" class="attachment-status" role="status"></p></section>`);
+  const list = $('#attachments-list'), picker = $('#attachment-file'), button = $('#attachment-upload'), status = $('#attachment-status');
+  async function refresh() {
+    try {
+      const files = await api(`/api/candidates/${id}/attachments`);
+      list.innerHTML = files.length ? files.map(file => `<a class="attachment-link" href="/api/attachments/${file.id}" download><span>${esc(file.name)}</span><small>${Math.max(1, Math.round(file.size / 1024))} Ko · Télécharger ↓</small></a>`).join('') : '<p class="muted">Aucun document pour cette candidature.</p>';
+    } catch (error) { list.textContent = `Chargement impossible : ${error.message}`; }
+  }
+  button.onclick = async () => {
+    const file = picker.files[0];
+    if (!file) { status.textContent = 'Sélectionnez un document à ajouter.'; return; }
+    if (file.size > 5 * 1024 * 1024) { status.textContent = 'La pièce jointe doit peser au maximum 5 Mo.'; return; }
+    button.disabled = true; status.textContent = 'Ajout du document…';
+    try {
+      const data = new FormData(); data.append('file', file);
+      const response = await fetch(`/api/candidates/${id}/attachments`, { method: 'POST', body: data });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      picker.value = ''; status.textContent = 'Document enregistré.'; await refresh();
+    } catch (error) { status.textContent = error.message || 'Impossible d’ajouter ce document.'; }
+    finally { button.disabled = false; }
+  };
+  refresh();
+}
 function openModal(kind, id) {
   $('#form-error').textContent = ''; $('#save-button').hidden = false;
   let candidate;
@@ -67,6 +92,7 @@ function openModal(kind, id) {
     candidate = state.candidates.find(c => c.id === id);
     $('#modal-title').textContent = candidate.name;
     $('#modal-fields').innerHTML = `<p class="detail-meta">${esc(candidate.email)}<br>${esc(candidate.job_title)}</p><label class="field">Étape du recrutement<select name="status">${state.statuses.map(s => `<option ${s === candidate.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label><label class="field">Notes internes<textarea name="notes" rows="5" maxlength="10000">${esc(candidate.notes)}</textarea></label>`;
+    setupAttachments(id);
   } else {
     const job = state.jobs.find(j => j.id === id);
     $('#modal-title').textContent = job.title;

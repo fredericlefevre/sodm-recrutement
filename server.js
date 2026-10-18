@@ -18,6 +18,9 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
       job_id INTEGER NOT NULL REFERENCES jobs(id), status TEXT NOT NULL DEFAULT 'À étudier', notes TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
+  db.exec(`CREATE TABLE IF NOT EXISTS attachments (
+    id INTEGER PRIMARY KEY, candidate_id INTEGER NOT NULL REFERENCES candidates(id),
+    name TEXT NOT NULL, data BLOB NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);`);
   if (!db.prepare("SELECT 1 FROM settings WHERE key = 'initialized'").get()) {
     db.exec('BEGIN');
     try {
@@ -38,22 +41,59 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
     } catch (e) { db.exec('ROLLBACK'); throw e; }
   }
   const json = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
+  async function bytes(req, limit = 65536) {
+    const chunks = []; let size = 0;
+    for await (const chunk of req) {
+      size += chunk.length;
+      if (size > limit) throw Object.assign(new Error('Fichier ou formulaire trop volumineux.'), { status: 413 });
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  }
   async function body(req) {
-    let raw = '';
-    for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > 65536) throw Object.assign(new Error('Formulaire trop volumineux.'), { status: 413 }); }
-    try { return JSON.parse(raw); } catch { throw Object.assign(new Error('Formulaire invalide.'), { status: 400 }); }
+    const raw = await bytes(req);
+    try { return JSON.parse(raw.toString('utf8')); } catch { throw Object.assign(new Error('Formulaire invalide.'), { status: 400 }); }
+  }
+  async function multipart(req) {
+    const raw = await bytes(req, 5 * 1024 * 1024 + 65536);
+    try { return await new Response(raw, { headers: { 'Content-Type': req.headers['content-type'] || '' } }).formData(); }
+    catch { throw Object.assign(new Error('Le formulaire de pièces jointes est invalide.'), { status: 400 }); }
+  }
+  async function attachment(file, optional = false) {
+    if (!file || (typeof file === 'object' && !file.name && !file.size)) {
+      if (optional) return null;
+      throw Object.assign(new Error('Sélectionnez un fichier.'), { status: 400 });
+    }
+    if (typeof file !== 'object' || typeof file.arrayBuffer !== 'function' || !file.size) throw Object.assign(new Error('Le fichier est vide ou invalide.'), { status: 400 });
+    if (file.size > 5 * 1024 * 1024) throw Object.assign(new Error('La pièce jointe doit peser au maximum 5 Mo.'), { status: 413 });
+    const name = file.name.split(/[\\/]/).pop().replace(/[\x00-\x1f\x7f]/g, '').trim();
+    const data = Buffer.from(await file.arrayBuffer());
+    const extension = name.split('.').pop().toLowerCase();
+    const valid = (extension === 'pdf' && data.toString('ascii', 0, 5) === '%PDF-') ||
+      (extension === 'doc' && data.subarray(0, 8).equals(Buffer.from([208,207,17,224,161,177,26,225]))) ||
+      (extension === 'docx' && data.subarray(0, 4).equals(Buffer.from([80,75,3,4]))) ||
+      (extension === 'png' && data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) ||
+      (['jpg', 'jpeg'].includes(extension) && data[0] === 255 && data[1] === 216 && data[2] === 255);
+    if (!valid || name.length > 200) throw Object.assign(new Error('Formats acceptés : PDF, Word (.doc, .docx), PNG et JPEG. Le contenu doit correspondre au format choisi.'), { status: 400 });
+    return { name, data };
   }
   function field(data, key, max = 200, optional = false) {
     const value = typeof data?.[key] === 'string' ? data[key].trim() : '';
     if ((!optional && !value) || value.length > max) throw Object.assign(new Error(`Champ invalide : ${key}.`), { status: 400 });
     return value;
   }
+  function insertCandidate(data) {
+    const name = field(data, 'name'), email = field(data, 'email', 254);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Object.assign(new Error('Adresse e-mail invalide.'), { status: 400 });
+    if (!Number.isSafeInteger(Number(data.job_id)) || !db.prepare('SELECT id FROM jobs WHERE id = ?').get(Number(data.job_id))) throw Object.assign(new Error('Sélectionnez une offre existante.'), { status: 400 });
+    return Number(db.prepare('INSERT INTO candidates (name, email, job_id, notes) VALUES (?, ?, ?, ?)').run(name, email, Number(data.job_id), field(data, 'notes', 10000, true)).lastInsertRowid);
+  }
   const server = createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
     try {
       const url = new URL(req.url, 'http://localhost');
-      const adminRoute = url.pathname === '/' || url.pathname === '/api/data' || (url.pathname === '/api/logo' && req.method !== 'GET') || (url.pathname === '/api/jobs' && req.method !== 'GET') || (url.pathname.startsWith('/api/candidates/') && req.method !== 'POST');
+      const adminRoute = url.pathname === '/' || url.pathname === '/api/data' || (url.pathname === '/api/logo' && req.method !== 'GET') || (url.pathname === '/api/jobs' && req.method !== 'GET') || url.pathname.startsWith('/api/candidates/') || url.pathname.startsWith('/api/attachments/');
       if (adminPassword && adminRoute) {
         const authorization = req.headers.authorization || '';
         const credentials = authorization.startsWith('Basic ') ? Buffer.from(authorization.slice(6), 'base64').toString() : '';
@@ -92,11 +132,34 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
           return json(res, 201, { id: Number(result.lastInsertRowid) });
         }
         if (req.method === 'POST' && url.pathname === '/api/candidates') {
-          const data = await body(req), name = field(data, 'name'), email = field(data, 'email', 254);
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: 'Adresse e-mail invalide.' });
-          if (!Number.isSafeInteger(Number(data.job_id)) || !db.prepare('SELECT id FROM jobs WHERE id = ?').get(Number(data.job_id))) return json(res, 400, { error: 'Sélectionnez une offre existante.' });
-          const result = db.prepare('INSERT INTO candidates (name, email, job_id, notes) VALUES (?, ?, ?, ?)').run(name, email, Number(data.job_id), field(data, 'notes', 10000, true));
+          return json(res, 201, { id: insertCandidate(await body(req)) });
+        }
+        if (req.method === 'POST' && url.pathname === '/api/applications') {
+          const form = await multipart(req), file = await attachment(form.get('cv'), true);
+          const data = Object.fromEntries(['name', 'email', 'job_id', 'notes'].map(key => [key, form.get(key)]));
+          db.exec('BEGIN');
+          try {
+            const id = insertCandidate(data);
+            if (file) db.prepare('INSERT INTO attachments (candidate_id, name, data) VALUES (?, ?, ?)').run(id, file.name, file.data);
+            db.exec('COMMIT');
+            return json(res, 201, { id });
+          } catch (error) { db.exec('ROLLBACK'); throw error; }
+        }
+        const candidateFiles = url.pathname.match(/^\/api\/candidates\/(\d+)\/attachments$/);
+        if (candidateFiles && ['GET', 'POST'].includes(req.method)) {
+          const id = Number(candidateFiles[1]);
+          if (!db.prepare('SELECT id FROM candidates WHERE id = ?').get(id)) return json(res, 404, { error: 'Candidature introuvable.' });
+          if (req.method === 'GET') return json(res, 200, db.prepare('SELECT id, name, length(data) AS size, created_at FROM attachments WHERE candidate_id = ? ORDER BY id DESC').all(id));
+          const form = await multipart(req), file = await attachment(form.get('file'));
+          const result = db.prepare('INSERT INTO attachments (candidate_id, name, data) VALUES (?, ?, ?)').run(id, file.name, file.data);
           return json(res, 201, { id: Number(result.lastInsertRowid) });
+        }
+        const download = url.pathname.match(/^\/api\/attachments\/(\d+)$/);
+        if (download && req.method === 'GET') {
+          const file = db.prepare('SELECT name, data FROM attachments WHERE id = ?').get(Number(download[1]));
+          if (!file) return json(res, 404, { error: 'Pièce jointe introuvable.' });
+          res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`, 'Cache-Control': 'no-store' });
+          return res.end(file.data);
         }
         const match = url.pathname.match(/^\/api\/candidates\/(\d+)$/);
         if (req.method === 'PATCH' && match) {

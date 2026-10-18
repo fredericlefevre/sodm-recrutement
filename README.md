@@ -18,7 +18,7 @@ Le serveur écoute sur la machine locale, port **3000**. L’espace équipe est 
 
 - Tableau de bord : offres, candidatures, entretiens, recrutements et pipeline par étape.
 - Création d’offres avec service, lieu, contrat et description ; affichage immédiat sur la page carrières.
-- Site carrières : recherche des offres et formulaire de candidature avec nom, e-mail et message de motivation.
+- Site carrières : recherche des offres et formulaire de candidature avec nom, e-mail, message de motivation et CV facultatif.
 - Espace équipe : ajout manuel de candidats, recherche, filtre par statut, notes et suivi des étapes « À étudier », « Entretien », « Proposition », « Recruté », « Refusé ».
 - Conservation des données dans `data/recrutement.sqlite`, fichier ignoré par Git.
 
@@ -44,11 +44,19 @@ SEED_DEMO=false DB_PATH=data/recrutement-vide.sqlite npm start
 
 En développement local, l’espace équipe fonctionne sans mot de passe. Une écoute hors de la machine locale nécessite `ADMIN_PASSWORD` ; le serveur refuse de démarrer sans ce paramètre. Fournir ce mot de passe par un gestionnaire de secrets ou l’environnement du processus, jamais dans Git. Lorsqu’il est activé, le navigateur demande les identifiants sur l’espace équipe ; les offres et le dépôt de candidature restent accessibles sans connexion. Une mise en ligne doit utiliser HTTPS devant le serveur, protéger les données et prévoir la gestion des abus du formulaire public.
 
-Cette version n’est pas encore déployée sur Internet. Elle ne comprend pas l’envoi d’e-mails, le téléversement de CV, les comptes individuels, la modification/suppression des offres ou la suppression des candidatures. La confirmation du formulaire indique seulement que la candidature est enregistrée.
+Cette version ne comprend pas l’envoi d’e-mails, les comptes individuels, la modification/suppression des offres ou la suppression des candidatures. La confirmation du formulaire indique seulement que la candidature et son éventuel CV sont enregistrés.
+
+## Pièces jointes
+
+Sur la page carrières, le candidat peut joindre un CV ou un autre document au formulaire. Dans l’espace équipe, ouvrir une candidature pour retrouver la section **Pièces jointes**, télécharger les documents ou ajouter des fichiers supplémentaires avec **Ajouter la pièce jointe**. Un candidat ajouté manuellement peut recevoir des documents après l’enregistrement de sa fiche.
+
+Formats acceptés : PDF, Word (`.doc`, `.docx`), PNG et JPEG, **5 Mo maximum par fichier**. Le serveur vérifie la taille, l’extension et la signature du fichier. Un document invalide empêche l’envoi du formulaire public sans créer de candidature partielle. Un formulaire sans CV reste accepté.
+
+Les fichiers sont conservés dans la base SQLite, avec les candidatures. Avec `ADMIN_PASSWORD` activé, leur liste, leur ajout après candidature et leur téléchargement exigent la connexion de l’équipe ; les candidats peuvent uniquement joindre leur document lors du dépôt initial. Les téléchargements conservent le nom et le contenu du fichier original. Les documents peuvent disparaître avec la base temporaire sur Render gratuit : utiliser des fichiers fictifs pour les essais.
 
 ## Vérification
 
-`npm test` exécute huit tests d’intégration avec de vraies requêtes HTTP et des bases isolées : logo intégré au dépôt, import et conservation du logo, démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage et pages/erreurs HTTP. Aucun test ne modifie la base de développement.
+`npm test` exécute onze tests d’intégration avec de vraies requêtes HTTP et des bases isolées : logo intégré au dépôt, import et conservation du logo, démarrage réseau sur Render sans variable HOST, parcours offre/candidature/statut, validation des formulaires, protection de l’administration, conservation des données après redémarrage, pages/erreurs HTTP, CV et documents privés persistants, refus des fichiers invalides et candidature sans CV. Aucun test ne modifie la base de développement.
 
 ## Ajouter le logo SODM
 

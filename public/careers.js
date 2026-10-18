@@ -19,8 +19,11 @@ $('#close-modal').onclick = () => { if (!submitting) $('#apply-modal').close(); 
 $('#apply-form').onsubmit = async event => {
   event.preventDefault(); if (submitting) return; submitting = true; $('#submit-button').disabled = true; $('#form-error').textContent = '';
   try {
-    const data = { ...Object.fromEntries(new FormData(event.currentTarget)), job_id: selectedJob };
-    const response = await fetch('/api/candidates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const data = new FormData(event.currentTarget);
+    data.set('job_id', String(selectedJob));
+    const file = data.get('cv');
+    if (file && file.size > 5 * 1024 * 1024) throw new Error('La pièce jointe doit peser au maximum 5 Mo.');
+    const response = await fetch('/api/applications', { method: 'POST', body: data });
     const result = await response.json(); if (!response.ok) throw new Error(result.error);
     $('#application-fields').hidden = true; $('#application-success').hidden = false;
   } catch (error) { $('#form-error').textContent = error.message || 'Envoi impossible. Réessayez dans quelques instants.'; }
