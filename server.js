@@ -118,7 +118,7 @@ export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo
         res.writeHead(200, { 'Content-Type': logo.mime, 'Cache-Control': 'no-store' });
         return res.end(req.method === 'HEAD' ? undefined : Buffer.from(logo.data, 'base64'));
       }
-      const files = { '/': ['index.html', 'text/html'], '/carrieres': ['careers.html', 'text/html'], '/branding.js': ['branding.js', 'text/javascript'], '/careers.js': ['careers.js', 'text/javascript'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'] };
+      const files = { '/logo-sodm.png': ['SODM_logotype R100 seul baseline150.png', 'image/png'], '/': ['index.html', 'text/html'], '/carrieres': ['careers.html', 'text/html'], '/branding.js': ['branding.js', 'text/javascript'], '/careers.js': ['careers.js', 'text/javascript'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'] };
       if (!files[url.pathname] || !['GET', 'HEAD'].includes(req.method)) return json(res, 404, { error: 'Page introuvable.' });
       const [file, mime] = files[url.pathname];
       res.writeHead(200, { 'Content-Type': `${mime}; charset=utf-8`, 'Cache-Control': 'no-cache' });
