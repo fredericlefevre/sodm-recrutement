@@ -52,7 +52,7 @@ Cette version n’est pas encore déployée sur Internet. Elle ne comprend pas l
 
 ## Ajouter le logo SODM
 
-Pour intégrer définitivement l’image originale, télécharger le PNG depuis SharePoint dans votre navigateur, le renommer `logo-sodm.png` puis l’ajouter dans le dossier `public` du dépôt. Sur GitHub : ouvrir `public`, choisir **Add file → Upload files**, déposer le PNG, puis confirmer avec **Commit changes**. Le site affiche automatiquement ce fichier dans les deux espaces, même avec une nouvelle base de données. Aucun accès SharePoint n’est nécessaire pour les visiteurs. Le fichier n’a pas encore été ajouté : il doit être fourni par une personne ayant accès au lien SharePoint.
+Le logo original est intégré au dépôt dans `public/SODM_logotype R100 seul baseline150.png`. Le site affiche automatiquement ce fichier dans les deux espaces, même avec une nouvelle base de données. Aucun accès SharePoint ni import manuel n’est nécessaire pour les visiteurs.
 
 Dans l’espace équipe, cliquer sur **Importer le logo**, puis sélectionner l’image originale sur votre appareil (PNG, JPEG ou WebP, 2 Mo maximum). L’image est conservée sans redessin dans la base SQLite et affichée sur les deux espaces avec ses proportions d’origine. Recharger la page carrières si elle était déjà ouverte. Le bouton permet aussi de remplacer le logo. Sur Render gratuit, le logo peut être perdu avec le reste de la base temporaire ; il faudra alors l’importer à nouveau.
 

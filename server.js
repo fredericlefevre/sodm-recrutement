@@ -8,7 +8,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 const root = dirname(fileURLToPath(import.meta.url));
 export const statuses = ['À étudier', 'Entretien', 'Proposition', 'Recruté', 'Refusé'];
 
-export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo = true, adminPassword = '', logoPath = join(root, 'public/logo-sodm.png') } = {}) {
+export function createApp({ dbPath = join(root, 'data/recrutement.sqlite'), demo = true, adminPassword = '', logoPath = join(root, 'public/SODM_logotype R100 seul baseline150.png') } = {}) {
   if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
   db.exec(`PRAGMA foreign_keys = ON;
